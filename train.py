@@ -3,14 +3,15 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from peft import LoraConfig, TaskType
 from peft import get_peft_model
 from datasets import load_dataset
+from accelerate import Accelerator
 
-peft_config = LoraConfig(r=8, lora_alpha=32, lora_dropout=0.1, task_type="CAUSAL_LM", inference_mode=False)
+peft_config = LoraConfig(r=8, lora_alpha=32, lora_dropout=0.1, task_type="CAUSAL_LM", inference_mode=False, target_modules=["bigcode.starcoder.GPTBigCodeAttention", "bigcode.starcoder.GPTBigCodeMLP"])
 
 model_id = "bigcode/starcoder2-15b"
 
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 tokenizer.pad_token = tokenizer.eos_token
-model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.bfloat16)
+model = AutoModelForCausalLM.from_pretrained(model_id, device_map={"": Accelerator().process_index}, torch_dtype=torch.bfloat16)
 
 ds = load_dataset("vdaita/editpackftmulti_inst")
 
