@@ -11,7 +11,7 @@ model_id = "bigcode/starcoder2-15b"
 
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 tokenizer.pad_token = tokenizer.eos_token
-model = AutoModelForCausalLM.from_pretrained(model_id, device_map={"": Accelerator().process_index}, torch_dtype=torch.bfloat16)
+model = AutoModelForCausalLM.from_pretrained(model_id, load_in_8bit=True, device_map={"": Accelerator().process_index}, torch_dtype=torch.bfloat16)
 
 ds = load_dataset("vdaita/editpackftmulti_inst")
 
