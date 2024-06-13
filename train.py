@@ -5,7 +5,7 @@ from peft import get_peft_model
 from datasets import load_dataset
 from accelerate import Accelerator
 
-peft_config = LoraConfig(r=8, lora_alpha=32, lora_dropout=0.1, task_type="CAUSAL_LM", inference_mode=False, target_modules=["bigcode.starcoder.GPTBigCodeAttention", "bigcode.starcoder.GPTBigCodeMLP"])
+peft_config = LoraConfig(r=8, lora_alpha=32, lora_dropout=0.1, task_type="CAUSAL_LM", inference_mode=False, target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "c_fc", "c_proj"])
 
 model_id = "bigcode/starcoder2-15b"
 
