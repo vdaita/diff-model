@@ -1,5 +1,5 @@
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, TrainingArguments, Trainer
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, TrainingArguments, Trainer, DataCollatorForLanguageModeling
 from peft import LoraConfig, TaskType
 from peft import get_peft_model
 from datasets import load_dataset
@@ -9,20 +9,54 @@ peft_config = LoraConfig(r=8, lora_alpha=32, lora_dropout=0.1, task_type="CAUSAL
 model_id = "bigcode/starcoder2-15b"
 
 tokenizer = AutoTokenizer.from_pretrained(model_id)
+tokenizer.pad_token = tokenizer.eos_token
 model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.bfloat16)
 
-dataset = load_dataset("vdaita/editpackftmulti_inst")
+ds = load_dataset("vdaita/editpackftmulti_inst")
 
 model = get_peft_model(model, peft_config)
 model.print_trainable_params()
 
-def tokenize_functions(examples):
-    return tokenizer(examples["inst"], truncation=False)
+def generate_text(row):
+    patch = row["patch"]
+    inst = row["inst"]
+    file = row["old_contents"]
+    filename = row["old_file"]
+    row["text"] = f"""# Filename: {filename}\n# File:\n{file}\n# Instructions:\n{inst}\n# Patch:\n```diff\n{patch}\n```"""
+    return row
+
+ds = ds.map(generate_text, num_proc=20)
+
+def preprocess_function(examples):
+    return tokenizer([" ".join(x) for x in examples["text"]])
+
+tokenized_ds = ds.map(preprocess_function, batched=True, num_proc=4, remove_columns=ds["train"].column_names)
+
+block_size = 1024
+
+def group_texts(examples):
+    # Concatenate all texts.
+    concatenated_examples = {k: sum(examples[k], []) for k in examples.keys()}
+    total_length = len(concatenated_examples[list(examples.keys())[0]])
+    # We drop the small remainder, we could add padding if the model supported it instead of this drop, you can
+    # customize this part to your needs.
+    if total_length >= block_size:
+        total_length = (total_length // block_size) * block_size
+    # Split by chunks of block_size.
+    result = {
+        k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
+        for k, t in concatenated_examples.items()
+    }
+    result["labels"] = result["input_ids"].copy()
+    return result
+
+lm_dataset = tokenized_ds.map(group_texts, batched=True, num_proc=4)
+data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer)
 
 training_args = TrainingArguments(
     output_dir="finetuned_starcoder2",
     learning_rate=1e-3,
-    per_device_train_batch_size=32
+    per_device_train_batch_size=32,
     per_device_eval_batch_size=32,
     num_train_epochs=2,
     weight_decay=0.01,
@@ -34,11 +68,10 @@ training_args = TrainingArguments(
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=tokenized_datasets["train"],
-    eval_dataset=tokenized_datasets["test"],
+    train_dataset=lm_dataset["train"],
+    eval_dataset=lm_dataset["test"],
     tokenizer=tokenizer,
     data_collator=data_collator,
-    compute_metrics=compute_metrics,
 )
 
 trainer.train()
