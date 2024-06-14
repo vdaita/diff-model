@@ -5,7 +5,16 @@ from peft import get_peft_model
 from datasets import load_dataset
 from accelerate import Accelerator
 
-peft_config = LoraConfig(r=8, lora_alpha=32, lora_dropout=0.1, task_type="CAUSAL_LM", inference_mode=False, target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "c_fc", "c_proj"])
+peft_config = LoraConfig(
+    r=8, 
+    lora_alpha=32, 
+    lora_dropout=0.1, 
+    task_type="CAUSAL_LM", 
+    inference_mode=False, 
+    target_modules=["q_proj", "v_proj"],
+    bias="none"
+    # target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "c_fc", "c_proj"]    
+)
 
 model_id = "bigcode/starcoder2-15b"
 
@@ -16,7 +25,7 @@ model = AutoModelForCausalLM.from_pretrained(model_id, load_in_8bit=True, device
 ds = load_dataset("vdaita/editpackftmulti_inst")
 
 model = get_peft_model(model, peft_config)
-model.print_trainable_params()
+model.print_trainable_parameters()
 
 def generate_text(row):
     patch = row["patch"]
@@ -52,11 +61,14 @@ def group_texts(examples):
     return result
 
 lm_dataset = tokenized_ds.map(group_texts, batched=True, num_proc=4)
-data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer)
+data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
 training_args = TrainingArguments(
     output_dir="finetuned_starcoder2",
-    learning_rate=1e-3,
+    warmup_steps=100,
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,
+    learning_rate=2e-4,
     per_device_train_batch_size=32,
     per_device_eval_batch_size=32,
     num_train_epochs=2,
