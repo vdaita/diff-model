@@ -6,17 +6,17 @@ from datasets import load_dataset
 from accelerate import Accelerator
 
 peft_config = LoraConfig(
-    r=8, 
+    r=4, 
     lora_alpha=32, 
     lora_dropout=0.1, 
     task_type="CAUSAL_LM", 
     inference_mode=False, 
-    target_modules=["q_proj", "v_proj"],
-    bias="none"
-    # target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "c_fc", "c_proj"]    
+    # target_modules=["q_proj", "v_proj"],
+    bias="none",
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "c_fc", "c_proj"]    
 )
 
-model_id = "bigcode/starcoder2-15b"
+model_id = "bigcode/starcoder2-7b"
 
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 tokenizer.pad_token = tokenizer.eos_token
