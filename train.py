@@ -46,12 +46,14 @@ training_args = TrainingArguments(
     per_device_train_batch_size=4,
     gradient_accumulation_steps=4,
     learning_rate=2e-4,
-    per_device_eval_batch_size=8,
+    per_device_eval_batch_size=4,
     num_train_epochs=2,
     weight_decay=0.01,
     evaluation_strategy="epoch",
     save_strategy="epoch",
-    load_best_model_at_end=True
+    load_best_model_at_end=True,
+    optim="adafactor",
+    torch_compile=True
 )
 
 trainer = Trainer(
