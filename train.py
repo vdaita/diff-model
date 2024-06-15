@@ -1,12 +1,12 @@
 from datasets import load_dataset
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import torch
 import torch.nn as nn
 import bitsandbytes as bnb
 from transformers import AutoTokenizer, AutoConfig, AutoModelForCausalLM
 
-model_name = "bigcode/starcoder2-15b"
+model_name = "bigcode/starcoder2-7b"
 ds = load_dataset("vdaita/editpackftmulti_inst")
 
 def generate_text(row):
@@ -70,7 +70,7 @@ from peft import LoraConfig, get_peft_model
 config = LoraConfig(
     r=16,
     lora_alpha=32,
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "c_fc", "c_proj"],
+    target_modules=["q_proj", "v_proj"],
     lora_dropout=0.05,
     bias="none",
     task_type="CAUSAL_LM"
