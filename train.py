@@ -98,9 +98,12 @@ trainer = transformers.Trainer(
         learning_rate=2e-4,
         fp16=True,
         logging_steps=1,
-        output_dir='outputs'
+        output_dir='finetuned_starcoder2'
     ),
     data_collator=transformers.DataCollatorForLanguageModeling(tokenizer, mlm=False)
 )
 model.config.use_cache = False  # silence the warnings. Please re-enable for inference!
 trainer.train()
+
+trainer.save_model("finetuned_starcoder2")
+model.push_to_hub("vdaita/diff-starcoder-7b")
