@@ -86,7 +86,7 @@ from datasets import load_dataset
 
 ds = ds.map(lambda samples: tokenizer(samples['text']), batched=True)
 
-trainer = transformers.Trainer(
+trainer = transformers.Trainer( # Maybe consider a custom trainer that only extracts the diffs themselves and leaves initial text alone?
     model=model,
     train_dataset=ds['train'],
     eval_dataset=ds['test'],
