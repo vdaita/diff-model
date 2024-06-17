@@ -1,0 +1,11 @@
+<<<<<<< HEAD
+.txt
+.env
+.json
+.bin
+.safetensors
+=======
+*.txt
+.env
+cache
+>>>>>>> refs/remotes/origin/main
