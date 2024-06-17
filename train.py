@@ -7,7 +7,7 @@ import bitsandbytes as bnb
 from transformers import AutoTokenizer, AutoConfig, AutoModelForCausalLM
 
 model_name = "bigcode/starcoder2-7b"
-ds = load_dataset("vdaita/editpackftmulti_inst")
+ds = load_dataset("vdaita/editpackft_inst")
 
 def generate_text(row):
     patch = row["patch"]
