@@ -7,6 +7,7 @@ import torch
 from torch import nn
 from tqdm import tqdm
 from diff_utils import *
+from peft import LoraConfig, get_peft_model
 
 def check_python(code): # https://stackoverflow.com/questions/4284313/python-how-to-check-syntax-of-python-file-script-without-executing-it
     try:
@@ -15,50 +16,8 @@ def check_python(code): # https://stackoverflow.com/questions/4284313/python-how
     except SyntaxError:
         return -1
 
-model_name = "vdaita/diff-starcoder-7b"
-
-model = AutoModelForCausalLM.from_pretrained(
-    model_name,
-    load_in_8bit=True,
-    device_map='auto',
-)
-
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-tokenizer.pad_token = tokenizer.eos_token
-
-"""### Post-processing on the model
-
-Finally, we need to apply some post-processing on the 8-bit model to enable training, let's freeze all our layers, and cast the layer-norm in `float32` for stability. We also cast the output of the last layer in `float32` for the same reasons.
-"""
-
-for param in model.parameters():
-  param.requires_grad = False  # freeze the model - train adapters later
-  if param.ndim == 1:
-    # cast the small parameters (e.g. layernorm) to fp32 for stability
-    param.data = param.data.to(torch.float32)
-
-model.gradient_checkpointing_enable()  # reduce number of stored activations
-model.enable_input_require_grads()
-
-class CastOutputToFloat(nn.Sequential):
-  def forward(self, x): return super().forward(x).to(torch.float32)
-model.lm_head = CastOutputToFloat(model.lm_head)
-
-def print_trainable_parameters(model):
-    """
-    Prints the number of trainable parameters in the model.
-    """
-    trainable_params = 0
-    all_param = 0
-    for _, param in model.named_parameters():
-        all_param += param.numel()
-        if param.requires_grad:
-            trainable_params += param.numel()
-    print(
-        f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
-    )
-
-from peft import LoraConfig, get_peft_model
+model_name = "bigcode/starcoder2-7b"
+adapter_name = "vdaita/diff-starcoder-7b"
 
 peft_config = LoraConfig(
     r=16,
@@ -69,13 +28,20 @@ peft_config = LoraConfig(
     task_type="CAUSAL_LM"
 )
 
-model = get_peft_model(model, peft_config)
-print_trainable_parameters(model)
+model = AutoModelForCausalLM.from_pretrained(
+    model_name,
+    load_in_8bit=True,
+    device_map='auto',
+    peft_config=peft_config
+)
+model.load_adapter(adapter_name)
+
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+tokenizer.pad_token = tokenizer.eos_token
 
 # Only finetune over python or javascript
 ds = load_dataset("vdaita/editpackftmulti_inst")
 ds = ds["train"]
-
 
 trainer = PPOTrainer(
     model=model,
@@ -86,7 +52,6 @@ trainer = PPOTrainer(
     dataset=ds,
     tokenizer=tokenizer
 )
-
 
 def add_prompt_and_tokenize(row):
     row["input_text"] = f"""# Filename: {row['old_file']}\n# File:\n{row['old_contents']}\n# Instructions:\n{row['inst']}\n# Patch:\n```diff"""

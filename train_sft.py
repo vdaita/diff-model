@@ -2,7 +2,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from datasets import load_dataset
 from trl import SFTConfig, SFTTrainer, DataCollatorForCompletionOnlyLM
 
-dataset = load_dataset("lucasmccabe-lmi/CodeAlpaca-20k", split="train")
+dataset = load_dataset("vdaita/editpackft_inst", split="train")
 
 model = AutoModelForCausalLM.from_pretrained("bigcode/starcoder2-7b")
 tokenizer = AutoTokenizer.from_pretrained("bigcode/starcoder2-7b")
