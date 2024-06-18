@@ -1,11 +1,14 @@
-<<<<<<< HEAD
-.txt
-.env
-.json
-.bin
-.safetensors
-=======
 *.txt
 .env
+<<<<<<< HEAD
+*.json
+*.bin
+*.safetensors
 cache
+merged_model
+=======
+cache
+*.orig
+*.patch
+*.rej
 >>>>>>> refs/remotes/origin/main
