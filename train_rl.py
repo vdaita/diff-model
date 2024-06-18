@@ -42,6 +42,13 @@ tokenizer.pad_token = tokenizer.eos_token
 ds = load_dataset("vdaita/editpackftmulti_inst")
 ds = ds["train"]
 
+def add_prompt_and_tokenize(row):
+    row["input_text"] = f"""# Filename: {row['old_file']}\n# File:\n{row['old_contents']}\n# Instructions:\n{row['inst']}\n# Patch:\n```diff"""
+    row["input_ids"] = tokenizer.encode(row["input_text"])
+    return row
+
+ds = ds.map(add_prompt_and_tokenize, num_proc=10)
+
 trainer = PPOTrainer(
     model=model,
     config=PPOConfig(
@@ -51,13 +58,6 @@ trainer = PPOTrainer(
     dataset=ds,
     tokenizer=tokenizer
 )
-
-def add_prompt_and_tokenize(row):
-    row["input_text"] = f"""# Filename: {row['old_file']}\n# File:\n{row['old_contents']}\n# Instructions:\n{row['inst']}\n# Patch:\n```diff"""
-    row["input_ids"] = tokenizer.encode(row["input_text"])
-    return row
-
-ds = ds.map(add_prompt_and_tokenize, num_proc=10)
 
 print("Dataset: ", ds)
 
