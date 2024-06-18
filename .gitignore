@@ -5,3 +5,7 @@
 *.safetensors
 cache
 merged_model
+cache
+*.orig
+*.patch
+*.rej
