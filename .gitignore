@@ -1,6 +1,7 @@
-.txt
+*.txt
 .env
-.json
-.bin
-.safetensors
+*.json
+*.bin
+*.safetensors
 cache
+merged_model
