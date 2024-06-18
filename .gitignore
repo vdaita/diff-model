@@ -1,3 +1,6 @@
 *.txt
 .env
 cache
+*.orig
+*.patch
+*.rej
