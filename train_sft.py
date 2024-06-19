@@ -3,7 +3,7 @@
 import argparse
 import os
 
-from accelerate import Accelerator
+from accelerate import Accelerator, PartialState
 from datasets import load_dataset
 from peft import LoraConfig
 from tqdm import tqdm
@@ -134,6 +134,7 @@ def run_training(args, train_data, val_data):
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM",
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
     )
 
     train_data.start_iteration = 0
@@ -158,14 +159,18 @@ def run_training(args, train_data, val_data):
         fp16=args.fp16,
         bf16=args.bf16,
         weight_decay=args.weight_decay,
-        run_name="llama-7b-finetuned",
+        run_name="starcoder2-diff-sft",
         report_to="wandb",
         ddp_find_unused_parameters=False,
     )
 
+    print("Finished loading training arguments")
+
     model = AutoModelForCausalLM.from_pretrained(
-        args.model_path, load_in_8bit=True, device_map={"": Accelerator().process_index}
+        args.model_path, load_in_8bit=True, device_map={"": PartialState().process_index}
     )
+
+    print("Finish loading the model")
 
     trainer = SFTTrainer(
         model=model,
@@ -175,6 +180,8 @@ def run_training(args, train_data, val_data):
         peft_config=lora_config,
         packing=True,
     )
+
+
 
     print_trainable_parameters(trainer.model)
 
