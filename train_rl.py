@@ -214,6 +214,15 @@ model = AutoModelForCausalLMWithValueHead.from_pretrained(
     peft_config=lora_config,
 )
 
+for param in model.parameters():
+    param.requires_grad = False
+    if param.ndim == 1:
+        param.data = param.data.to(torch.float32)
+
+model.gradient_checkpointing_enable()
+model.enable_input_require_grads()
+
+
 optimizer = None
 if script_args.adafactor:
     optimizer = Adafactor(

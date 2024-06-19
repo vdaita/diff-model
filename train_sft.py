@@ -21,9 +21,9 @@ def get_args():
     parser.add_argument("--streaming", action="store_true")
     parser.add_argument("--shuffle_buffer", type=int, default=5000)
 
-    parser.add_argument("--seq_length", type=int, default=2048)
+    parser.add_argument("--seq_length", type=int, default=1596)
     parser.add_argument("--max_steps", type=int, default=10000)
-    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=2)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--eos_token_id", type=int, default=49152)
 
@@ -66,6 +66,7 @@ def print_trainable_parameters(model):
     """
     Prints the number of trainable parameters in the model.
     """
+    print("Printing trainable parameters")
     trainable_params = 0
     all_param = 0
     for _, param in model.named_parameters():
@@ -167,8 +168,14 @@ def run_training(args, train_data, val_data):
     print("Finished loading training arguments")
 
     model = AutoModelForCausalLM.from_pretrained(
-        args.model_path, load_in_8bit=True, device_map={"": PartialState().process_index}
+        args.model_path, device_map={"": PartialState().process_index}, load_in_8bit=True
     )
+
+    # for param in model.parameters():
+    #    param.requires_grad = False
+
+    model.gradient_checkpointing_enable()
+    model.enable_input_require_grads()
 
     print("Finish loading the model")
 
@@ -180,8 +187,9 @@ def run_training(args, train_data, val_data):
         peft_config=lora_config,
         packing=True,
     )
+    model.config.use_cache = False
 
-
+    print("Finished loading SFT Trainer")
 
     print_trainable_parameters(trainer.model)
 
