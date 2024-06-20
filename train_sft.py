@@ -23,7 +23,7 @@ def get_args():
 
     parser.add_argument("--seq_length", type=int, default=1596)
     parser.add_argument("--max_steps", type=int, default=10000)
-    parser.add_argument("--batch_size", type=int, default=2)
+    parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--eos_token_id", type=int, default=49152)
 

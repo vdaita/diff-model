@@ -92,7 +92,7 @@ class ScriptArguments:
     )
     batched_gen: Optional[bool] = field(default=False, metadata={"help": "whether to use the batched text gen"})
     save_freq: Optional[int] = field(default=None, metadata={"help": "n steps to save the model"})
-    output_dir: Optional[str] = field(default="rl-runs/", metadata={"help": "n steps to save the model"})
+    output_dir: Optional[str] = field(default="./rl-runs/", metadata={"help": "n steps to save the model"})
     seed: Optional[int] = field(default=0, metadata={"help": "the seed"})
     steps: Optional[int] = field(default=20000, metadata={"help": "number of epochs"})
     init_kl_coef: Optional[float] = field(
@@ -106,7 +106,7 @@ class ScriptArguments:
 
 parser = HfArgumentParser(ScriptArguments)
 script_args: ScriptArguments = parser.parse_args_into_dataclasses()[0]
-reward_model_name = script_args.reward_model_name
+
 dataset_name = "vdaita/editpackft_inst"
 config = PPOConfig(
     steps=script_args.steps,
@@ -206,6 +206,7 @@ lora_config = LoraConfig(
     lora_dropout=0.05,
     bias="none",
     task_type="CAUSAL_LM",
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 )
 model = AutoModelForCausalLMWithValueHead.from_pretrained(
     config.model_name,
