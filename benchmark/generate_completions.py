@@ -808,7 +808,7 @@ class DiffEditModel(EditModel):
         num_gpus=1,
         quantization=True
     ):
-        self.generator = pipeline("text-generation", model="vdaita/diff-starcoder-7b-rl")
+        self.generator = pipeline("text-generation", model="vdaita/diff-starcoder-7b-rl", device_map="auto", model_kwargs={"load_in_8bit": True})
 
     def generate(self, prompts: List[EditCommand], **kwargs) -> List[EditResponse]:
         import diff_utils
@@ -820,7 +820,7 @@ class DiffEditModel(EditModel):
                 f"""# Filename: main.py\n# File:\n{prompt["content"]}\n#Instructions:\n{prompt["instruction"]}\n# Patch:\n"""
             )
         
-        outputs = self.generator(chat_prompts)
+        outputs = self.generator(chat_prompts, max_new_tokens=2000, kwargs={"use_cache": True})
         edited_files = []
 
         for (output, prompt) in zip(outputs, prompts):
