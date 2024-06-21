@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import torch
+from torch.utils.data import DataLoader
 from accelerate import Accelerator
 from datasets import load_dataset
 from peft import LoraConfig
@@ -36,31 +37,32 @@ def extract_code_block_data(md_text, language):
 def check_python(code): # https://stackoverflow.com/questions/4284313/python-how-to-check-syntax-of-python-file-script-without-executing-it
     try:
         ast.parse(code)
-        return 1
+        return 1.0
     except SyntaxError:
-        return -1
+        return -1.0
 
 def evaluate_batch(batch):
-    patch_md = batch["response"]
-    contents = batch["old_contents"]
 
-    diff_block = extract_code_block_data(patch_md)
-    sr_blocks = parse_diff(diff_block)
-    sr_blocks = [find_best_match(block.search_block, contents).block for block in sr_blocks]
-    model_line_count = 0
-    
-    for block in sr_blocks:
-        model_line_count += len(block.search_block.splitlines())
-        model_line_count += len(block.replace_block.splitlines())
-        contents = contents.replace(block.search_block, block.replace_block)
-    
-    truth_sr_blocks = parse_diff(batch["patch"])
-    truth_line_count = 0
-    for block in truth_sr_blocks:
-        truth_line_count += len(block.search_block.splitlines())
-        truth_line_count += len(block.replace_block.splitlines())
+    rewards = []
 
-    rewards.append(torch.tensor(check_python(contents) * min(1, model_line_count/truth_line_count))) # This tuning tries to get the model to generate syntactically valid diffs. 
+    for (patch_md, contents) in zip(batch["response"], batch["old_contents"]):
+        sr_blocks = parse_diff(patch_md)
+        actual_searches = [find_best_match(block.search_block, contents).block for block in sr_blocks]
+        model_line_count = 0
+    
+        for (block, actual_search) in zip(sr_blocks, actual_searches):
+            model_line_count += len(actual_search.splitlines())
+            model_line_count += len(block.replace_block.splitlines())
+            contents = contents.replace(actual_search, block.replace_block)
+    
+        rewards.append(torch.tensor(check_python(contents)))
+    # truth_sr_blocks = parse_diff(batch["patch"])
+    # truth_line_count = 0
+    # for block in truth_sr_blocks:
+    #    truth_line_count += len(block.search_block.splitlines())
+    #    truth_line_count += len(block.replace_block.splitlines())
+ 
+    # rewards.append(torch.tensor(check_python(contents) * min(1, model_line_count/truth_line_count))) # This tuning tries to get the model to generate syntactically valid diffs. 
     return rewards
 
 tqdm.pandas()
@@ -182,6 +184,8 @@ def build_dataset(
     )
     ds = ds.filter(lambda x: len(x["input_ids"]) < script_args.output_max_length, batched=False)
 
+    print(ds)
+
     ds.set_format(type="torch")
     return ds
 
@@ -215,14 +219,19 @@ model = AutoModelForCausalLMWithValueHead.from_pretrained(
     peft_config=lora_config,
 )
 
-for param in model.parameters():
-    param.requires_grad = False
-    if param.ndim == 1:
-        param.data = param.data.to(torch.float32)
+# model.gradient_checkpointing_enable()
+# model.enable_input_require_grads()
 
-model.gradient_checkpointing_enable()
-model.enable_input_require_grads()
+def print_trainable_parameters(model):
+    trainable_params = 0
+    all_param = 0
+    for _, param in model.named_parameters():
+        all_param += param.numel()
+        if param.requires_grad:
+            trainable_params += param.numel()
+    print(f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params/all_param}")
 
+print_trainable_parameters(model)
 
 optimizer = None
 if script_args.adafactor:
@@ -233,6 +242,9 @@ if script_args.adafactor:
         warmup_init=False,
         lr=config.learning_rate,
     )
+
+# dataloader = DataLoader(dataset, batch_size=script_args.batch_size)
+
 # We then build the PPOTrainer, passing the model, the reference model, the tokenizer
 ppo_trainer = PPOTrainer(
     config,
@@ -241,7 +253,7 @@ ppo_trainer = PPOTrainer(
     tokenizer=tokenizer,
     dataset=dataset,
     data_collator=collator,
-    optimizer=optimizer,
+    optimizer=optimizer
 )
 
 # We then build the sentiment analysis pipeline using our reward model, passing the
@@ -269,6 +281,13 @@ output_length_sampler = LengthSampler(output_min_length, output_max_length)
 for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
     if epoch >= config.total_ppo_epochs:
         break
+
+    old_contents = []
+    for in_query in batch["query"]:
+        text = in_query.split("# File:\n")[1].split("\n#Instructions:")[0]
+        old_contents.append(text)
+
+    batch["old_contents"] = old_contents
 
     question_tensors = batch["input_ids"]
 

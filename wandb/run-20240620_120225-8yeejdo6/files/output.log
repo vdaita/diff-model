@@ -1,0 +1,16 @@
+
+0it [00:00, ?it/s]You're using a GPT2TokenizerFast tokenizer. Please note that with a fast tokenizer, using the `__call__` method is faster than using a method to encode the text followed by a call to the `pad` method to get a padded encoding.
+dict_keys(['query', 'input_ids', 'response'])
+0it [00:28, ?it/s]
+Traceback (most recent call last):
+  File "/home/vijay/diff-model/train_rl.py", line 281, in <module>
+    rewards = evaluate_batch(batch)
+  File "/home/vijay/diff-model/train_rl.py", line 47, in evaluate_batch
+    contents = batch["old_contents"]
+KeyError: 'old_contents'
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/home/vijay/diff-model/train_rl.py", line 281, in <module>
+[rank0]:     rewards = evaluate_batch(batch)
+[rank0]:   File "/home/vijay/diff-model/train_rl.py", line 47, in evaluate_batch
+[rank0]:     contents = batch["old_contents"]
+[rank0]: KeyError: 'old_contents'
