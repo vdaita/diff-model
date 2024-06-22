@@ -820,7 +820,7 @@ class DiffEditModel(EditModel):
                 f"""# Filename: main.py\n# File:\n{prompt["content"]}\n#Instructions:\n{prompt["instruction"]}\n# Patch:\n"""
             )
         
-        outputs = self.generator(chat_prompts, max_new_tokens=2000, kwargs={"use_cache": True})
+        outputs = self.generator(chat_prompts, max_new_tokens=1000, kwargs={"use_cache": True})
         edited_files = []
 
         for (ufmt_output, prompt) in zip(outputs, prompts):
@@ -831,6 +831,7 @@ class DiffEditModel(EditModel):
             for (block, actual_search) in zip(sr_blocks, actual_searches):
                 content = content.replace(actual_search, block.replace_block)
             edited_files.append(EditResponse(instruction=prompt["instruction"], content=f"```python\n{content}\n```"))
+            print("Ratio: ", len(output) / len(prompt["content"]), " | ",  len(output) / len(content))
 
         return edited_files
 
@@ -984,7 +985,10 @@ def main(args):
         for instr_kind in instr_kinds:
             path = Path(args.output_dir) / \
                 (f"{ex['full_name']}_{instr_kind}.json.gz")
+
+            print("Checking path: ", path)
             if path.exists():
+                print("Path exists: ", path)
                 continue  # this pretty much resumes from where it left off
 
             instr = ex[instr_kind]
