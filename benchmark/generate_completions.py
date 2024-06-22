@@ -823,7 +823,8 @@ class DiffEditModel(EditModel):
         outputs = self.generator(chat_prompts, max_new_tokens=2000, kwargs={"use_cache": True})
         edited_files = []
 
-        for (output, prompt) in zip(outputs, prompts):
+        for (ufmt_output, prompt) in zip(outputs, prompts):
+            output = ufmt_output[0]["generated_text"]
             sr_blocks = diff_utils.parse_diff(output)
             content = prompt["content"]
             actual_searches = [diff_utils.find_best_match(block.search_block, content).block for block in sr_blocks]
