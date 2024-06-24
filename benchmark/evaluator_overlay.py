@@ -101,7 +101,7 @@ if __name__ == "__main__":
     # import main from the real evaluator
     try:
         from main import main, open_json  # type: ignore
-    except ImportError:
+    except ImportError or ModuleNotFoundError:
         from evaluator import main, open_json  # type: ignore
 
     # run the real evaluator

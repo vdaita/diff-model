@@ -11,7 +11,8 @@ from vllm import LLM, RequestOutput, SamplingParams, CompletionOutput
 from trl import AutoModelForCausalLMWithValueHead
 import gzip
 import json
-
+import os
+import uuid
 
 def gunzip_json_write(path: Path, data: dict) -> None:
     with gzip.open(path, "wt") as f:
@@ -805,10 +806,11 @@ class OpenAIChatModel(ChatModel):
 class DiffEditModel(EditModel):
     def __init__(
         self,
+        path="vdaita/diff-starcoder-7b-rl",
         num_gpus=1,
         quantization=True
     ):
-        self.generator = pipeline("text-generation", model="vdaita/diff-starcoder-7b-rl", device_map="auto", model_kwargs={"load_in_8bit": True})
+        self.generator = pipeline("text-generation", model=path, device_map="auto", model_kwargs={"load_in_8bit": True})
 
     def generate(self, prompts: List[EditCommand], **kwargs) -> List[EditResponse]:
         import diff_utils
@@ -825,6 +827,15 @@ class DiffEditModel(EditModel):
 
         for (ufmt_output, prompt) in zip(outputs, prompts):
             output = ufmt_output[0]["generated_text"]
+            
+            if not(os.path.exists("completions")):
+                os.mkdir("completions")
+            
+            file_id = str(uuid.uuid4())
+            file = open(f"completions/{file_id}.txt", "w+")
+            file.write(f"# Content: {prompt["content"]} \n \n # Instruction: {prompt["instruction"]} \n \n # Generated output: \n {output}")
+            file.close()
+
             sr_blocks = diff_utils.parse_diff(output)
             content = prompt["content"]
             actual_searches = [diff_utils.find_best_match(block.search_block, content).block for block in sr_blocks]
@@ -936,7 +947,7 @@ def model_factory(
             num_gpus=num_gpus,
         )))
     elif model_type == "diffcoder":
-        return (lambda path: DiffEditModel(quantization=quantize, num_gpus=num_gpus))
+        return (lambda path: DiffEditModel(path=path, quantization=quantize, num_gpus=num_gpus))
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
@@ -956,6 +967,7 @@ def complete_problem(example: EditCommand, model: EditModel, batch_size: int, co
 def main(args):
     dataset = datasets.load_dataset(
         args.dataset, args.subset, split=args.split)
+    
     model = model_factory(
         args.model_type,
         quantize=args.quantize,

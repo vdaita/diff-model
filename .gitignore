@@ -9,3 +9,6 @@ cache
 *.orig
 *.patch
 *.rej
+MultiPL-E/
+*.gz
+*.json

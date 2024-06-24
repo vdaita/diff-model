@@ -11,4 +11,3 @@ COPY benchmark/.coveragerc /code
 WORKDIR /code
 RUN pip3 install -r requirements.txt
 ENTRYPOINT ["python3", "evaluator_overlay.py"]
-
