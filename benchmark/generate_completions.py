@@ -833,7 +833,7 @@ class DiffEditModel(EditModel):
             
             file_id = str(uuid.uuid4())
             file = open(f"completions/{file_id}.txt", "w+")
-            file.write(f"# Content: {prompt["content"]} \n \n # Instruction: {prompt["instruction"]} \n \n # Generated output: \n {output}")
+            file.write(f"# Content: {prompt['content']} \n \n # Instruction: {prompt['instruction']} \n \n # Generated output: \n {output}")
             file.close()
 
             sr_blocks = diff_utils.parse_diff(output)
