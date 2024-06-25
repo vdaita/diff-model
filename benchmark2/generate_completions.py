@@ -244,39 +244,11 @@ class ChatModel:
         raise NotImplementedError
 
 
-def chatmodel_factory(model_type, model_name, num_gpus):
-    if model_type == "llama":
-        return HFChatModel(model_name, num_gpus)
-    else:
-        raise ValueError(f"Unknown chat model type {model_type}")
-
-
 class EditModel:
     def __init__(self, before_content_tok=None, instruction_tok=None, after_content_tok=None):
         self.before_content_tok = before_content_tok
         self.instruction_tok = instruction_tok
         self.after_content_tok = after_content_tok
-
-    def edit_model_generate(
-        self,
-        model: Union[LLM, TransformersVLLMAdapter],
-        str_prompts: List[str], **kwargs
-    ) -> List[RequestOutput]:
-        kwargs_gen = kwargs.copy()
-        if "declaration" in kwargs_gen:
-            del kwargs_gen["declaration"]
-        use_tqdm = kwargs_gen.pop("use_tqdm", False)
-        gens = model.generate(
-            prompts=str_prompts,
-            sampling_params=SamplingParams(
-                top_p=kwargs_gen.pop("top_p", 0.95),
-                temperature=kwargs_gen.pop("temperature", 0.2),
-                max_tokens=kwargs_gen.pop("max_tokens", 1024),
-                **kwargs_gen,
-            ),
-            use_tqdm=use_tqdm,
-        )
-        return gens
 
     def get_before_content_tok(self) -> Optional[str]:
         return self.before_content_tok
@@ -298,30 +270,6 @@ class EditModel:
 
     def get_tokenizer(self):
         raise NotImplementedError
-
-
-def editmodel_factory(model_type, model_name, num_gpus):
-    if model_type == "starcoder":
-        return StarCoderCommitEditModel(model_name, num_gpus)
-    else:
-        raise ValueError(f"Unknown edit model type {model_type}")
-
-def init_completion_engine(engine: CompletionEngine, **kwargs):
-    if engine == "vllm":
-        extra_kwargs = {}
-        if "max_model_len" in kwargs:
-            extra_kwargs["max_model_len"] = kwargs["max_model_len"]
-        return LLM(
-            kwargs["model_name"],
-            dtype=autodetect_dtype(),
-            tensor_parallel_size=kwargs["num_gpus"],
-            gpu_memory_utilization=kwargs["gpu_util"],
-            **extra_kwargs,
-        )
-    elif engine == "transformers":
-        return TransformersVLLMAdapter(kwargs["model_name"])
-    else:
-        raise ValueError(f"Unknown completion engine {engine}")
 
 from unsloth import FastLanguageModel
 
