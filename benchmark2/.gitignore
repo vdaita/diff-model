@@ -1,0 +1,14 @@
+*.txt
+.env
+*.json
+*.bin
+*.safetensors
+cache
+merged_model
+cache
+*.orig
+*.patch
+*.rej
+MultiPL-E/
+*.gz
+*.json
