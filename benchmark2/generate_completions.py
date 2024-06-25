@@ -3,12 +3,7 @@ from pathlib import Path
 from typing import List, Callable, TypeVar
 from tqdm import tqdm
 import torch
-import openai
-import time
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from typing import List, Literal, Optional, TypedDict, Callable, Union
-from vllm import LLM, RequestOutput, SamplingParams, CompletionOutput
-from trl import AutoModelForCausalLMWithValueHead
 import gzip
 import json
 import os
