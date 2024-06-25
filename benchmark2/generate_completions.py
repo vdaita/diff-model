@@ -359,7 +359,7 @@ class DiffEditModel(EditModel):
                 f"""# Filename: main.py\n# File:\n{prompt["content"]}\n#Instructions:\n{prompt["instruction"]}\n# Patch:\n"""
             )
         
-        chat_prompts = tokenizer(chat_prompts, tokenize=True, return_tensors="pt").to("cuda")
+        chat_prompts = self.tokenizer(chat_prompts, tokenize=True, return_tensors="pt").to("cuda")
 
         outputs = self.model.generate(input_ids=chat_prompts, max_new_tokens=1000, use_cache=True)
         edited_files = []
