@@ -1,0 +1,19 @@
+    original_line_index = 0
+    current_chunk_index = 0
+    edited_chunks = []
+    edited_chunk_lines = []
+    original_chunk_lines = []
+
+    for line in diff:
+        if line.startswith("+"):
+            edited_chunk_lines.append(line[1:])
+        else:
+            if "\n".join(original_chunk_lines) != chunked_text[current_chunk_index]: # Check that we have seen the current chunk values before moving on 
+                edited_chunks.append("\n".join(edited_chunk_lines))
+                edited_chunk_lines = []
+            if line.startswith(" "):
+                edited_chunk_lines.append(line[1:])
+            original_chunk_lines.append(line[1:])
+
+            original_line_index += 1
+    edited_chunks.append("\n".join(edited_chunk_lines))
