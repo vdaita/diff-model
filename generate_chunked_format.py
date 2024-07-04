@@ -4,7 +4,6 @@ from difflib import unified_diff
 import json
 
 parser = get_parser("python")
-
     
 def find_non_whitespace_indices(s):
     non_whitespace_indices = [i for i, c in enumerate(s) if not c.isspace()]
@@ -26,14 +25,14 @@ def chunk_text(text: str, min_chunk_lines=3, max_chunk_lines=5): # CREATE NEW
         for split_id in definition_names:
             split_lines = set([])
             for child in node.children:
-                print(child.type)
+                # print(child.type)
                 if child.type in split_id:
                     split_lines.add(child.start_point[0]) # Starting line of the class definition
 
             split_lines.add(0)
             split_lines.add(len(lines))
             split_lines = list(split_lines)
-            print(split_lines)
+            # print(split_lines)
 
             if len(split_lines) > 2:
                 chunks = []
@@ -94,9 +93,9 @@ def make_changes(original_code, new_code):
 
     assert "\n".join(chunked_text) == original_code
 
-    print(len("\n".join(chunked_text)), len(original_lines))
+    # print(len("\n".join(chunked_text)), len(original_lines))
 
-    print("\n".join(diff))
+    # print("\n".join(diff))
     original_line_index = 0
     current_chunk_index = 0
     edited_chunks = []
@@ -119,12 +118,39 @@ def make_changes(original_code, new_code):
             original_line_index += 1
     edited_chunks.append("\n".join(edited_chunk_lines))
 
-    for (original_chunk, edited_chunk) in zip(chunked_text, edited_chunks):
+    return chunked_text, edited_chunks
+    # for (original_chunk, edited_chunk) in zip(chunked_text, edited_chunks):
+    #     if original_chunk != edited_chunk:
+    #         print(f"ORIGINAL\n{original_chunk}\nEDITED\n{edited_chunk}")
+
+def generate_compressed_output(original_code, new_code):
+    original_chunks, edited_chunks = make_changes(original_code, new_code)
+    edited_indices = set([])
+    for (chunk_index, (original_chunk, edited_chunk)) in enumerate(zip(original_chunks, edited_chunks)):
         if original_chunk != edited_chunk:
-            print(f"ORIGINAL\n{original_chunk}\nEDITED\n{edited_chunk}")
+            edited_indices.add(chunk_index)
+            edited_indices.add(chunk_index - 1)
+            if chunk_index == 0:
+                edited_indices.add(chunk_index + 1)
+    edited_indices = list(edited_indices)
+    previous_index = 0
+    
+    output = ""
+    for edited_index in edited_indices:
+        if edited_index != previous_index + 1:
+            first_line = edited_chunks[edited_index].splitlines()[0]
+            whitespace = first_line[:len(first_line) - len(first_line.lstrip())]
+            output += f"{whitespace}@@ ... @@\n"
+        output += edited_chunks[edited_index] + "\n"
+        previous_index = edited_index
+    return output
+
+def apply_ellipsis_code(original_code, ellipsis_code):
+    ...
 
 if __name__ == "__main__":
     orig_code = open("test_original.txt", "r").read()
     new_code = open("test_new.txt", "r").read()
-    print("\n-----\n".join(fix_whitespace_on_chunks(chunk_text(orig_code))))
-    make_changes(orig_code, new_code)
+    # print("\n-----\n".join(fix_whitespace_on_chunks(chunk_text(orig_code))))
+    # make_changes(orig_code, new_code)
+    print(generate_compressed_output(orig_code, new_code))
