@@ -8,13 +8,13 @@ def process_row_ellipsis(row):
     row['old_contents'] = f"print('Program start')\n{row['old_contents']}\nprint('Program end')"
     row['new_contents'] = f"print('Program start')\n{row['new_contents']}\nprint('Program end')"
 
-    inst = f"""Rewrite the file, using ellipsis to skip over code that should remain unchanged
+    inst = f"""Rewrite the file, using ellipsis (@@ ... @@) to skip over chunks of code that should remain unchanged.
 
 ## File:
 {row['old_contents']}
 
 ## Changes: 
-{row['new_contents']}
+{row['inst']}
 
 """
     
