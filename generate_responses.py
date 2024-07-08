@@ -209,9 +209,9 @@ Rewritten chunk y
         out_file.close()
     
     if f"{col_name}_response" in dataset.column_names:
-        dataset = dataset.remove_columns(columns([f"{col_name}_response"])
+        dataset = dataset.remove_columns([f"{col_name}_response"])
     if f"{col_name}_count" in dataset.column_names:
-        dataset = dataset.remove_columns(columns([f"{col_name}_count"])
+        dataset = dataset.remove_columns([f"{col_name}_count"])
 
     dataset = dataset.add_column(f"{col_name}_response", outputs)
     dataset = dataset.add_column(f"{col_name}_count", outputs_token_length)
