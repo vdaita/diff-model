@@ -1,0 +1,21 @@
+print('Program start')
+from z3 import Sum, Distinct, Solver, Int, sat
+from typing import List, Union
+
+def magic_square(order: int = 3) -> Union[str, List[List[int]]]:
+    name = lambda i, j: f'x_{i}_{j}'
+    x = [[Int(name(i, j)) for j in range(order)] for i in range(order)]
+    s = Solver()
+    s.add([And(i > 0, i <= 9) for row in x for i in row])
+    s.add(Distinct([i for row in x for i in row]))
+    magic_sum = Sum(x[0])
+    magic_sum_const = lambda f: Sum([f(i, j) for i in range(order) for j in range(order)])
+    s.add(magic_sum_const(x) == magic_sum)
+    s.add(magic_sum_const(lambda i, j: [x[i][j], x[j][i]]) == magic_sum)
+    s.add(magic_sum_const(lambda i, j: [x[i][j], x[order - i - 1][order - j - 1]]) == magic_sum)
+    if s.check() == sat:
+        m = s.model()
+        return [[int(m.evaluate(x[i][j]).as_string()) for j in range(order)] for i in range(order)]
+    else:
+        return "No solution exists"
+print('Program end')

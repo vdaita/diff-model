@@ -24,7 +24,7 @@ def find_non_whitespace_indices(s):
         return None, None
     return non_whitespace_indices[0], non_whitespace_indices[-1]
 
-def chunk_text(text: str, min_chunk_lines=3, max_chunk_lines=3, rec_depth=1): # CREATE NEW
+def chunk_text(text: str, min_chunk_lines=3, max_chunk_lines=3, rec_depth=1, use_space_split=True): # This function should have the same defaults as previous_funct
     unsplit_text = text
     start_index, end_index = find_non_whitespace_indices(text)
     # print(start_index, end_index)
@@ -54,7 +54,7 @@ def chunk_text(text: str, min_chunk_lines=3, max_chunk_lines=3, rec_depth=1): # 
             for child in node.children:
                 # print(child.type)
                 if child.type in split_id:
-                    split_lines.add(child.start_point[0]) # Starting line of the class definition
+                    split_lines.add(child.start_point[0]) # Crucial change: edin
             # print(">>       Split lines: ", split_lines)
 
             split_lines.add(0)
@@ -72,23 +72,24 @@ def chunk_text(text: str, min_chunk_lines=3, max_chunk_lines=3, rec_depth=1): # 
                 # print(f"         > Splitting at {split_id} level.")
                 # print("\n-----\n".join(chunks))
                 return chunks
-            
-        # Here, there are no further splits that can be made through any of the items
-        # Identify a new-line and split after that because that indicates the end of a code "thought". How closely to max_chunk_lines can it be split?
-        chunks = [[]]
-        for line in lines:
-            if len(line.strip()) == 0 and len(chunks[-1]) >= min_chunk_lines:
-                chunks.append([]) # Whitespace after the max_chunk_lines? Then, trigger a split
-            chunks[-1].append(line)
+        
+        if use_space_split:
+            # Here, there are no further splits that can be made through any of the items
+            # Identify a new-line and split after that because that indicates the end of a code "thought". How closely to max_chunk_lines can it be split?
+            chunks = [[]]
+            for line in lines:
+                if len(line.strip()) == 0 and len(chunks[-1]) >= min_chunk_lines:
+                    chunks.append([]) # Whitespace after the max_chunk_lines? Then, trigger a split
+                chunks[-1].append(line)
 
-        if len(chunks) >= 2:
-            if len(chunks[-1]) < min_chunk_lines:
-                chunks[-2] += chunks[-1]
-                chunks = chunks[:-1]
+            if len(chunks) >= 2:
+                if len(chunks[-1]) < min_chunk_lines:
+                    chunks[-2] += chunks[-1]
+                    chunks = chunks[:-1]
 
-        joined_chunks = ["\n".join(chunk) for chunk in chunks]
-        joined_chunks[0] = start_chunk + joined_chunks[0]
-        joined_chunks[-1] = joined_chunks[-1] + end_chunk
+            joined_chunks = ["\n".join(chunk) for chunk in chunks]
+            joined_chunks[0] = start_chunk + joined_chunks[0]
+            joined_chunks[-1] = joined_chunks[-1] + end_chunk
         return joined_chunks
 
     return [unsplit_text]
@@ -104,7 +105,39 @@ def fix_whitespace_on_chunks(chunks):
             fixed_chunks.append(chunk)
     return fixed_chunks
 
-def make_changes(original_code, new_code):
+def apply_edits_to_chunks(chunked, diff):
+    first_line_index = 0
+    for line_idx, line in enumerate(diff):
+        if line.count("@@") == 2:
+            first_line_index = line_idx + 1
+            break
+
+    diff = diff[first_line_index:]
+
+    original_line_index = 0
+    current_chunk_index = 0
+    edited_chunks = []
+    edited_chunk_lines = []
+    original_chunk_lines = []
+
+    for line in diff:
+        if line.startswith("+"):
+            edited_chunk_lines.append(line[1:])
+        else:
+            if "\n".join(original_chunk_lines) == chunked[current_chunk_index]: # Check that we have seen the current chunk values before moving on 
+                edited_chunks.append("\n".join(edited_chunk_lines))
+                edited_chunk_lines = []
+                original_chunk_lines = []
+                current_chunk_index += 1
+            if line.startswith(" "):
+                edited_chunk_lines.append(line[1:])
+            original_chunk_lines.append(line[1:])
+
+            original_line_index += 1
+    edited_chunks.append("\n".join(edited_chunk_lines))
+    return edited_chunks
+
+def make_changes(original_code, new_code, min_chunk_lines=3, max_chunk_lines=3, split_levels=[]):
     blockPrint()
 
     original_code = original_code.rstrip()
@@ -114,15 +147,8 @@ def make_changes(original_code, new_code):
     new_lines = new_code.split("\n")
     
     diff = list(unified_diff(original_lines, new_lines, n=1000000))
-    first_line_index = 0
-    for line_idx, line in enumerate(diff):
-        if line.count("@@") == 2:
-            first_line_index = line_idx + 1
-            break
 
-    diff = diff[first_line_index:]
-
-    chunked_text = chunk_text(original_code)
+    chunked_text = chunk_text(original_code, min_chunk_lines=min_chunk_lines, max_chunk_lines=max_chunk_lines, )
     chunked_text = fix_whitespace_on_chunks(chunked_text)
 
     # if not("\n".join(chunked_text)) == original_code:
@@ -137,27 +163,7 @@ def make_changes(original_code, new_code):
     # print(len("\n".join(chunked_text)), len(original_lines))
 
     # print("\n".join(diff))
-    original_line_index = 0
-    current_chunk_index = 0
-    edited_chunks = []
-    edited_chunk_lines = []
-    original_chunk_lines = []
-
-    for line in diff:
-        if line.startswith("+"):
-            edited_chunk_lines.append(line[1:])
-        else:
-            if "\n".join(original_chunk_lines) == chunked_text[current_chunk_index]: # Check that we have seen the current chunk values before moving on 
-                edited_chunks.append("\n".join(edited_chunk_lines))
-                edited_chunk_lines = []
-                original_chunk_lines = []
-                current_chunk_index += 1
-            if line.startswith(" "):
-                edited_chunk_lines.append(line[1:])
-            original_chunk_lines.append(line[1:])
-
-            original_line_index += 1
-    edited_chunks.append("\n".join(edited_chunk_lines))
+    edited_chunks = apply_edits_to_chunks(chunked_text, diff)
     
     print("\n------\n".join(edited_chunks))
 

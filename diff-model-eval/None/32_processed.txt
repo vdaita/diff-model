@@ -1,0 +1,31 @@
+print('Program start')
+import numpy as np
+from typing import Dict, List
+
+class MarkovChain:
+
+    def create_transition_matrix(self, matrix):
+        
+        matrix = np.array(matrix)
+        column_sums = np.sum(matrix, axis=0)
+        normalized_matrix = matrix / column_sums
+        return normalized_matrix.tolist()
+
+
+
+
+    def translate_from_list(self, adj_list: Dict[int, List[int]]) -> List[List[float]]:
+
+        self.nodes = set(node for k, v in adj_list.items() for node in (k, *v))
+        n = len(self.nodes)
+        matrix = [[0.0 for _ in range(n)] for _ in range(n)]
+
+        for k, v in adj_list.items():
+            k_index = self.nodes.index(k)
+            for node in v:
+                node_index = self.nodes.index(node)
+                matrix[k_index][node_index] += 1
+
+        return self.create_transition_matrix(matrix)
+
+print('Program end')

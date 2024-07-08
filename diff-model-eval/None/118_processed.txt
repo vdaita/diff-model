@@ -1,0 +1,36 @@
+print('Program start')
+
+import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.base import BaseEstimator, TransformerMixin
+
+
+class PCAFeatureReducer(BaseEstimator, TransformerMixin):
+    """Reduces the dimensionality of a dataset using their principal components."""
+
+    def __init__(self, n_components: int = 2, min_variance: float = 1e-06):
+        self.n_components = n_components
+        self.min_variance = min_variance
+        self.pca = PCA(n_components=self.n_components)
+
+    def fit(self, df: pd.DataFrame, y: pd.Series = None):
+        scaler = StandardScaler()
+        df_scaled = scaler.fit_transform(df)
+        var = df_scaled.var(axis=0)
+        column_names = [f"component_{i}" for i in range(1, self.n_components + 1)]
+        self.pca = PCA(n_components=self.n_components)
+        self.pca.fit(df_scaled)
+        self.df_pca_basis = pd.DataFrame(self.pca.components_.T, index=df.columns, columns=column_names)
+        return self
+
+    def transform(self, df: pd.DataFrame):
+        df_scaled = StandardScaler().fit_transform(df)
+        return self.pca.transform(df_scaled)
+
+    def apply_pca(self):
+        scaler = StandardScaler()
+        data_scaled = scaler.fit_transform(self.data)
+        principal_components = self.pca.fit_transform(data_scaled)
+        return principal_components
+print('Program end')

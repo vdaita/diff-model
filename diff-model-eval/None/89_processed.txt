@@ -1,0 +1,10 @@
+print('Program start')
+def reverseString(originalString):
+    reversedString = ""
+    for i in range(0, len(originalString)):
+        reversedString += originalString[len(originalString) - 1 - i]
+    return reversedString
+
+def isPalindrome(originalString):
+    return originalString.lower() == reverseString(originalString.lower())
+print('Program end')

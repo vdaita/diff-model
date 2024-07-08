@@ -1,0 +1,11 @@
+print('Program start')
+import torch
+
+
+def kl_div(q: torch.distributions.Distribution, p: torch.distributions.Distribution,
+           num_samples: int = 100000) -> torch.Tensor:
+    q_samples = q.rsample((num_samples,))
+    log_ratio = q.log_prob(q_samples) - p.log_prob(q_samples)
+    return log_ratio.mean()
+
+print('Program end')

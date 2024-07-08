@@ -1,0 +1,10 @@
+print('Program start')
+from typing import List
+
+
+def find_non_pair(numbers: List[int]) -> int:
+    unique_number = 0
+    for number in numbers:
+        unique_number ^= number
+    return unique_number
+print('Program end')

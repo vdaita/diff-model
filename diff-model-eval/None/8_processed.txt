@@ -1,0 +1,32 @@
+print('Program start')
+from abc import ABC, abstractmethod
+from math import sqrt, acos, pi
+
+class Vector(ABC):
+    def __init__(self, *args: int):
+        self.vals = args
+
+    @abstractmethod
+    def manhattan_distance(other) -> float:
+        pass
+
+    @abstractmethod
+    def cosine_similarity(other) -> float:
+        pass
+
+class MyVector(Vector):
+    def manhattan_distance(self, other):
+        if len(self.vals) != len(other.vals):
+            raise ValueError("Both vectors must have same number of dimensions")
+        return sum(abs(a - b) for a, b in zip(self.vals, other.vals))
+
+    def cosine_similarity(self, other):
+        if len(self.vals) != len(other.vals):
+            raise ValueError("Both vectors must have same number of dimensions")
+        if sum(a * a for a in self.vals) == 0 or sum(a * a for a in other.vals) == 0:
+            raise ValueError("One of the vectors being compared has magnitude of zero")
+        dot_product = sum(a * b for a, b in zip(self.vals, other.vals))
+        magnitude = sqrt(sum(a * a for a in self.vals)) * sqrt(sum(a * a for a in other.vals))
+        cosine = dot_product / magnitude
+        return (acos(cosine) * 180 / pi)
+print('Program end')
