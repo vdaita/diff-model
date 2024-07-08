@@ -13,7 +13,7 @@ from enum import Enum
 from openai import OpenAI
 import tiktoken
 from dotenv import load_dotenv
-from ..generate_chunked_format import chunk_text, fix_whitespace_on_chunks
+import generate_chunked_format
 
 load_dotenv(".env")
 
@@ -36,7 +36,7 @@ def add(a, b):
 def multiply(a, b):
     return a * b
 </Delete>
-<Replace>
+<Replac
     sum = a + b
     return sum
 <With>
@@ -149,8 +149,8 @@ def main(model_id: str, model_type: OutputEnum, output_folder: str, api: str, co
 
 """
         elif model_type == "chunked":
-            chunks = chunk_text(row['before'])
-            chunks = fix_whitespace_on_chunks(chunks)
+            chunks = generate_chunked_format.chunk_text(row['before'])
+            chunks = generate_chunked_format.fix_whitespace_on_chunks(chunks)
 
             chunked_input = "```\n"
             for chunk_index, original_chunk in enumerate(chunks):
@@ -161,7 +161,7 @@ def main(model_id: str, model_type: OutputEnum, output_folder: str, api: str, co
 {chunked_input}
 
 ## Changes:
-{row['inst']}
+{row['instruction_descriptive']}
 
 First, list which chunks need to be changed in order to implement the requested changes. Then, rewrite only the necessary chunks in the following format:
 
