@@ -1,0 +1,80 @@
+base_model: deepseek-ai/deepseek-coder-6.7b-instruct
+model_type: LlamaForCausalLM
+tokenizer_type: LlamaTokenizerFast
+
+load_in_8bit: true
+load_in_4bit: false
+strict: false
+
+datasets:
+  - path: vdaita/editpackft_inst_chunked
+    split: train
+    type: oasst
+dataset_prepared_path:
+
+test_datasets:
+  - path: vdaita/editpackft_inst_chunked
+    split: test
+    type: oasst
+
+output_dir: ./outputs/dscoder-code-chunked
+
+sequence_len: 4096
+sample_packing: true
+pad_to_sequence_len: true
+
+eval_sample_packing: false
+
+adapter: lora
+lora_model_dir:
+lora_r: 32
+lora_alpha: 16
+lora_dropout: 0.05
+lora_target_linear: true
+lora_fan_in_fan_out:
+
+lora_modules_to_save:
+  - embed_tokens
+  - lm_head
+
+wandb_project: huggingface
+wandb_log_model: axolotl-dscoder-chunked
+
+hub_model_id: vdaita/diff-deepseek-chunked
+hub_strategy: every_save
+
+gradient_accumulation_steps: 4
+micro_batch_size: 2
+num_epochs: 1
+optimizer: adamw_bnb_8bit
+lr_scheduler: cosine
+learning_rate: 0.0002
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+early_stopping_patience:
+resume_from_checkpoint:
+local_rank:
+logging_steps: 1
+xformers_attention:
+flash_attention: true
+s2_attention:
+
+warmup_steps: 10
+evals_per_epoch: 4
+saves_per_epoch: 1
+debug:
+deepspeed:
+weight_decay: 0.0
+fsdp:
+fsdp_config:
+
+special_tokens:
+  bos_token: "<|begin_of_sentence|>"
+  eos_token: "<|end_of_sentence|>"
+  pad_token: "<|end_of_sentence|>"

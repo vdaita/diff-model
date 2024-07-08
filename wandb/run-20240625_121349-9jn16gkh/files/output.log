@@ -1,0 +1,7 @@
+==((====))==  Unsloth: Fast Llama patching release 2024.6
+   \\   /|    GPU: NVIDIA GeForce RTX 3090. Max memory: 23.691 GB. Platform = Linux.
+O^O/ \_/ \    Pytorch: 2.3.0+cu121. CUDA = 8.6. CUDA Toolkit = 12.1.
+\        /    Bfloat16 = TRUE. Xformers = 0.0.26.post1. FA = False.
+ "-____-"     Free Apache license: http://github.com/unslothai/unsloth
+/home/vijay/.local/lib/python3.10/site-packages/accelerate/utils/modeling.py:1384: UserWarning: Current model requires 54525952.0 bytes of buffer for offloaded layers, which seems does not fit any GPU's remaining memory. If you are experiencing a OOM later, please consider using offload_buffers=True.
+  warnings.warn(

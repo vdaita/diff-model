@@ -1,0 +1,17 @@
+Unsloth: You are pushing to hub, but you passed your HF username = vdaita.
+We shall truncate vdaita/diff-codellama-7b to diff-codellama-7b
+ 88%|███████████████████████████████████████████████████████████▌        | 28/32 [00:00<00:00, 49.72it/s]We will save to Disk and not RAM now.
+Unsloth: Merging 4bit and LoRA weights to 16bit...
+Unsloth: Will use up to 171.58 out of 251.5 RAM for saving.
+100%|████████████████████████████████████████████████████████████████████| 32/32 [00:02<00:00, 12.61it/s]
+Unsloth: Saving tokenizer... Done.
+Unsloth: Saving model... This might take 5 minutes for Llama-7b...
+HTTP Error 500 thrown while requesting PUT https://hf-hub-lfs-us-east-1.s3-accelerate.amazonaws.com/repos/e0/b8/e0b8cd4ad38d890513137d83caa7aaed3d94dcd5726b91164934859220ecc936/b0261318135bf4ef0fb1171e341e4a3cb252dae828f684df38a63ca74662a61e?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIA2JU7TKAQLC2QXPN7%2F20240625%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240625T180951Z&X-Amz-Expires=86400&X-Amz-Signature=80bf64bf3576b8fc4d4a6c5d2a20b2df144ce1a1038f3b82aa0fc778e80e4e3d&X-Amz-SignedHeaders=host&partNumber=53&uploadId=EqTAcoQTy5ENLVWRlsv.IZrmdwHxGTkTw5pUHeD5nTFu_NlHF3R1cm7nVxSRWpuo6c1ikFWfQFl_of3tCmdXwwYDV9z7gy6W2011AAI30UsafT7yxW1OCtV5dKXlOc2N&x-id=UploadPart
+Retrying in 1s [Retry 1/5].
+  6%|████▎                                                                | 2/32 [00:01<00:18,  1.60it/s]
+Unsloth: Merging 4bit and LoRA weights to 16bit...
+
+
+
+
+ 44%|█████████████████████████████▊                                      | 14/32 [00:09<00:11,  1.52it/s]

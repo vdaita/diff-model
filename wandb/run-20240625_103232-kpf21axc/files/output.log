@@ -1,0 +1,35 @@
+==((====))==  Unsloth - 2x faster free finetuning | Num GPUs = 1
+   \\   /|    Num examples = 4,500 | Num Epochs = 1
+O^O/ \_/ \    Batch size per device = 4 | Gradient Accumulation steps = 4
+\        /    Total batch size = 16 | Total steps = 281
+ "-____-"     Number of trainable parameters = 100,007,936
+Unsloth: You are pushing to hub, but you passed your HF username = vdaita.
+We shall truncate vdaita/diff-codegemma-7b to diff-codegemma-7b
+ 54%|████████████████████████████████████▍                               | 15/28 [00:00<00:00, 37.85it/s]We will save to Disk and not RAM now.
+ 68%|██████████████████████████████████████████████▏                     | 19/28 [00:01<00:00, 11.47it/s]
+Unsloth: Merging 4bit and LoRA weights to 16bit...
+
+
+
+
+100%|████████████████████████████████████████████████████████████████████| 28/28 [00:08<00:00,  3.41it/s]
+Unsloth: Saving tokenizer... Done.
+Unsloth: Saving model... This might take 5 minutes for Llama-7b...
+Done.
+Saved merged model to https://huggingface.co/vdaita/diff-codegemma-7b
+ 25%|█████████████████▎                                                   | 7/28 [00:00<00:00, 27.82it/s]
+Unsloth: Merging 4bit and LoRA weights to 16bit...
+
+ 71%|████████████████████████████████████████████████▌                   | 20/28 [00:00<00:00, 29.84it/s]
+  0%|                                                                             | 0/28 [00:00<?, ?it/s]
+Unsloth: Merging 4bit and LoRA weights to 16bit...
+Unsloth: Will use up to 169.37 out of 251.5 RAM for saving.
+ 25%|█████████████████▎                                                   | 7/28 [00:00<00:00, 35.70it/s]
+Unsloth: Merging 4bit and LoRA weights to 16bit...
+
+
+
+100%|████████████████████████████████████████████████████████████████████| 28/28 [00:05<00:00,  4.99it/s]
+Unsloth: Saving tokenizer... Done.
+Unsloth: Saving model... This might take 5 minutes for Llama-7b...
+Done.

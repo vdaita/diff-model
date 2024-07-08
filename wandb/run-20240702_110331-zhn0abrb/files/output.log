@@ -1,0 +1,20 @@
+Unsloth: You are pushing to hub, but you passed your HF username = vdaita.
+We shall truncate vdaita/diff-deepseek-code-ir to diff-deepseek-code-ir
+  0%|                                                                                                                                                                                                                   | 0/32 [00:00<?, ?it/s]We will save to Disk and not RAM now.
+ 19%|██████████████████████████████████████                                                                                                                                                                     | 6/32 [00:01<00:07,  3.49it/s]
+Unsloth: Merging 4bit and LoRA weights to 16bit...
+
+
+
+
+
+
+
+
+100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:17<00:00,  1.84it/s]
+Unsloth: Saving tokenizer... Done.
+Unsloth: Saving model... This might take 5 minutes for Llama-7b...
+Done.
+Saved merged model to https://huggingface.co/vdaita/diff-deepseek-code-ir
+Unsloth: Saving LoRA adapters. Please wait...
+Saved lora model to https://huggingface.co/vdaita/diff-deepseek-code-ir

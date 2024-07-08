@@ -1,0 +1,16 @@
+Unsloth: You are pushing to hub, but you passed your HF username = vdaita.
+We shall truncate vdaita/diff-codegemma-7b to diff-codegemma-7b
+  4%|██▍                                                                  | 1/28 [00:00<00:03,  7.98it/s]
+Unsloth: Merging 4bit and LoRA weights to 16bit...
+Unsloth: Will use up to 169.84 out of 251.5 RAM for saving.
+Unsloth: Merging 4bit and LoRA weights to 16bit...
+Unsloth: Will use up to 171.22 out of 251.5 RAM for saving.
+ 61%|█████████████████████████████████████████▎                          | 17/28 [00:00<00:00, 33.12it/s]We will save to Disk and not RAM now.
+
+
+ 93%|███████████████████████████████████████████████████████████████▏    | 26/28 [00:05<00:00,  2.64it/s]
+
+Unsloth: Saving tokenizer... Done.
+Unsloth: Saving model... This might take 5 minutes for Llama-7b...
+Done.
+Saved merged model to https://huggingface.co/vdaita/diff-codegemma-7b
