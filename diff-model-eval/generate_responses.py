@@ -13,6 +13,7 @@ from enum import Enum
 from openai import OpenAI
 import tiktoken
 from dotenv import load_dotenv
+from ..generate_chunked_format import chunk_text, fix_whitespace_on_chunks
 
 load_dotenv(".env")
 
@@ -148,6 +149,14 @@ def main(model_id: str, model_type: OutputEnum, output_folder: str, api: str, co
 
 """
         elif model_type == "chunked":
+            chunks = chunk_text(row['before'])
+            chunks = fix_whitespace_on_chunks(chunks)
+
+            chunked_input = "```\n"
+            for chunk_index, original_chunk in enumerate(chunks):
+                chunked_input += f"# Chunk {chunk_index + 1}\n{original_chunk}\n"
+            chunked_input += "```"
+
             formatted_input = f"""## File:
 {chunked_input}
 
