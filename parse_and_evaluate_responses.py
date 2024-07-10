@@ -13,21 +13,24 @@ import tempfile
 from enum import Enum
 from typing_extensions import Annotated
 import sys
-sys.path.append("..")
 from tiktoken import get_encoding
+import difflib
+from rapidfuzz.fuzz import partial_token_set_ratio
 
-from diffmodel.generate_ellipsis_format import apply_ellipsis_code
+from generate_ellipsis_format import apply_ellipsis_code
+from generate_chunked_format import chunk_text
 
 encoding = get_encoding("cl100k_base")
 
 # exec(compile(open("../diff-model/generate_ellipsis_format.py", "rb").read(), "generate_ellipsis_format.py", 'exec'), globals, locals)
 
-class OutputEnum(str, Enum):
+class OutputEnum(str, Enum): # TODO: put all of this in one file
     line = "line"
     ir = "ir"
     whole = "whole"
     udiff = "udiff"
     ellipsis = "ellipsis"
+    chunked = "chunked"
 
 def add_line_modifications_to_code(original_code, modification_xml):
     new_code = []
@@ -113,6 +116,40 @@ def add_ir_modifications_to_code(original_code, modification_xml):
 
     return new_code
 
+def apply_chunked_modifications_to_code(original_code, modifications_text):
+    chunked_code = chunk_text(original_code)
+    split_modifications = modifications_text.split("```")
+    # print(json.dumps(split_modifications, indent=4))
+    print(len(split_modifications))
+    for i in range(0, len(split_modifications) - 1, 2):
+        numbers = re.findall(r'\d+', split_modifications[i])
+        if not(len(numbers)):
+            continue
+        idx = int(numbers[-1]) - 1
+
+        if idx >= len(chunked_code):
+            continue
+
+        new_code = split_modifications[i + 1].strip('\n')
+
+        most_similar_chunks = []
+        for j in range(len(chunked_code)): # use the chunk number as a way to discern between similar items, i.e. __str__ or something other than __init__ since it's at the top
+            schunk = chunked_code[j].strip('\n')
+            if len(schunk) == 0:
+                continue
+            # first line similarity
+            similarity = partial_token_set_ratio(schunk, new_code) + partial_token_set_ratio(schunk.splitlines()[0], new_code.splitlines()[0])
+            if similarity > 130:
+                most_similar_chunks.append((abs(idx - j), new_code, j))
+        
+        if len(most_similar_chunks) > 0:
+            most_similar_chunks = sorted(most_similar_chunks)
+            chunked_code[most_similar_chunks[0][2]] = most_similar_chunks[0][1]
+        else:
+            # print("Replacing: \n", chunked_code, "\nwith\n", split_modifications[i + 1])
+            chunked_code[idx] = new_code
+    return "\n".join(chunked_code)
+
 def extract_code_block_for_direct_modifications(response):
     try:
         return response.split("```python")[1].split("```")[0].strip()
@@ -195,18 +232,25 @@ def main(model_type: OutputEnum, use_ds: bool, column: Annotated[Optional[str], 
             changed_before = f"print('Program started')\n{row['before']}\nprint('Program ended')"
             token_count_extracted.append(len(encoding.encode(extracted)))
             new_code = apply_ellipsis_code(changed_before, extracted)
+        elif model_type == "chunked":
+            new_code = apply_chunked_modifications_to_code(row['before'], output)
+            token_count_extracted.append(len(encoding.encode(output))) # TODO: standardize token counting?
 
         new_code = new_code.replace("<TOP/>", "")
 
         python_code = new_code + f"\n{row['tests']}\n" + "print('SUCCESS')"
         execution_output, error = run_python_code_with_timeout(python_code, 7)
 
-        print(execution_output, error)
+        print(row['id'], ":", execution_output, error)
         if "IndentationError" in error:
             print(new_code)
 
         out_file = open(os.path.join(output_folder, f"{row['id']}_processed.txt"), "w+")
         out_file.write(new_code)
+        out_file.close()
+
+        out_file = open(os.path.join(output_folder, f"{row['id']}_diff.txt"), "w+")
+        out_file.write("\n".join(difflib.unified_diff(new_code.splitlines(), row['after'].splitlines())))
         out_file.close()
 
         # Evaluate the response length in number of tokens

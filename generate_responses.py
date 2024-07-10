@@ -14,6 +14,9 @@ from openai import OpenAI
 import tiktoken
 from dotenv import load_dotenv
 import generate_chunked_format
+from sglang import function, system, user, assistant, gen, set_default_backend, RuntimeEndpoint
+import re
+import time
 
 load_dotenv(".env")
 
@@ -89,6 +92,43 @@ class OutputEnum(str, Enum):
     udiff = "udiff"
     ellipsis = "ellipsis"
     chunked = "chunked"
+    parallel_chunked = "parallel_chunked"
+
+
+@function
+def generate_code(s, code, instruction, parallel=False):
+    chunked_code = generate_chunked_format.chunk_text(code)
+    code_str = "```\n"
+    for chunk_index, chunk in enumerate(chunked_code):
+        code_str += f"# Chunk {chunk_index + 1}\n"
+        code_str += chunk
+        code_str += '\n'
+    code_str += "```"
+    
+    s += user(f"# Code\n{code_str}\n# Instruction\n{instruction}\n# Write a very brief bullet point list describing changes for each relevant chunk, with one line for each edited chunk.\n")
+    plan_regex = r"(?m)^- Chunk \d{1,2}: .{1,90}$"
+    s += gen("plan", regex=plan_regex)
+    plan_parsing_regex = r'^- Chunk (\d{1,2}): (.{1,90})$'
+    matches = re.findall(plan_parsing_regex, s["plan"], re.MULTILINE)
+    steps = [{"number": int(number), "instruction": instruction} for (number, instruction) in matches]
+    
+    if parallel:
+        forks = s.fork(len(steps))
+        for i, f in enumerate(forks):
+            f += f"Rewritten chunk {steps[i]['number']}:\n```\n"
+            f += gen(f"chunk", max_tokens=256, stop="```")
+        for i in range(len(steps)):
+            new_code = forks[i]["chunk"].replace("```", "")
+            chunked_code[step['number'] - 1] = new_code
+        return "\n".join(chunked_code)
+
+    for step in steps:
+        s += user(f"Rewritten chunk {step['number']}:\n```\n")
+        s += gen(f"chunk_{step['number']}", stop="```")
+        new_code = s[f"chunk_{step['number']}"].replace("```", "")
+        chunked_code[step['number'] - 1] = new_code
+    return "\n".join(chunked_code)
+
 
 def main(model_id: str, model_type: OutputEnum, output_folder: str, api: str, col_name: str):
     dataset = load_dataset("vdaita/CanItEditResponses", split="test")
@@ -100,6 +140,9 @@ def main(model_id: str, model_type: OutputEnum, output_folder: str, api: str, co
     elif api == "openai":
         model = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
         tokenizer = tiktoken.get_encoding("cl100k_base")
+    elif api == "sglang":
+        set_default_backend(RuntimeEndpoint("http://localhost:30000"))
+
     
     model_type = model_type.value
 
@@ -110,7 +153,7 @@ def main(model_id: str, model_type: OutputEnum, output_folder: str, api: str, co
     outputs_token_length = []
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+    start_time = time.time()
     for row in tqdm(dataset):
         file_path = os.path.join(output_folder, f"{row['id']}_direct.txt")
         if os.path.exists(file_path):
@@ -188,8 +231,6 @@ Rewritten chunk y
             output = output[:, formatted_input.shape[1]:][0]
             outputs_token_length.append(output.shape[0])
             output = tokenizer.decode(output)
-            
-            outputs.append(output)
         elif api == "openai":
             output = model.chat.completions.create(
                 messages=[{"role": "user", "content": formatted_input}],
@@ -199,8 +240,21 @@ Rewritten chunk y
             output = output.choices[0].message.content
 
             outputs_token_length.append(len(tokenizer.encode(output)))
-            outputs.append(output)
-
+        elif api == "sglang":
+            if model_type == "parallel_chunked":
+                new_code = generate_code.run(
+                    code=row['before'],
+                    instruction=row['instruction_descriptive'],
+                    parallel=True
+                )
+                output = new_code.ret_value
+            elif model_type == "chunked":
+                new_code = generate_code.run(
+                    code=row['before'],
+                    instruction=row['instruction_descriptive']
+                )
+                output = new_code.ret_value
+        outputs.append(output)
         # output = pipe(formatted_input, do_sample=True, max_new_tokens=500, top_p=0.95, **{"use_cache": True})
         # output = row['outputs']
         # output = output.replace(formatted_input, "")
@@ -208,10 +262,12 @@ Rewritten chunk y
         out_file.write(output)
         out_file.close()
     
+    print("TIME TAKEN: ", time.time() - start_time)
+
     if f"{col_name}_response" in dataset.column_names:
-        dataset = dataset.remove_columns(columns([f"{col_name}_response"])
+        dataset = dataset.remove_columns([f"{col_name}_response"])
     if f"{col_name}_count" in dataset.column_names:
-        dataset = dataset.remove_columns(columns([f"{col_name}_count"])
+        dataset = dataset.remove_columns([f"{col_name}_count"])
 
     dataset = dataset.add_column(f"{col_name}_response", outputs)
     dataset = dataset.add_column(f"{col_name}_count", outputs_token_length)
