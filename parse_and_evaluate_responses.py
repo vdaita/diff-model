@@ -266,7 +266,7 @@ def main(model_type: OutputEnum, use_ds: bool, column: Annotated[Optional[str], 
     out_file.write(json.dumps(output_data_json, indent=4))
     out_file.close()
 
-    print(sum(token_count_extracted)/len(token_count_extracted))
+    # print(sum(token_count_extracted)/len(token_count_extracted))
     print("Number correct: ", accurate_count, "/", len(output_data_json))
 
 if __name__ == "__main__":
