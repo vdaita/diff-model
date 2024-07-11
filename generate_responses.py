@@ -1,6 +1,6 @@
 from datasets import load_dataset
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
-from typing import Literal
+from typing import Literal, List
 import torch
 import typer
 from tqdm import tqdm
@@ -15,6 +15,8 @@ import tiktoken
 from dotenv import load_dotenv
 import generate_chunked_format
 from sglang import function, system, user, assistant, gen, set_default_backend, RuntimeEndpoint
+from sglang.srt.constrained import build_regex_from_object
+from pydantic import BaseModel
 import re
 import time
 
@@ -94,6 +96,17 @@ class OutputEnum(str, Enum):
     chunked = "chunked"
     parallel_chunked = "parallel_chunked"
 
+class InstructionType(str, Enum):
+    insert = "insert"
+    replace = "replace"
+
+class Change(BaseModel):
+    chunk_index: int
+    instruction_type: InstructionType
+    description: str
+
+class ChangeList(BaseModel):
+    changes: List[Change]
 
 @function
 def generate_code(s, code, instruction, parallel=False):
@@ -105,28 +118,30 @@ def generate_code(s, code, instruction, parallel=False):
         code_str += '\n'
     code_str += "```"
     
-    s += user(f"# Code\n{code_str}\n# Instruction\n{instruction}\n# Write a very brief bullet point list describing changes for each relevant chunk, with one line for each edited chunk.\n")
-    plan_regex = r"(?m)^- Chunk \d{1,2}: .{1,90}$"
-    s += gen("plan", regex=plan_regex)
-    plan_parsing_regex = r'^- Chunk (\d{1,2}): (.{1,90})$'
-    matches = re.findall(plan_parsing_regex, s["plan"], re.MULTILINE)
-    steps = [{"number": int(number), "instruction": instruction} for (number, instruction) in matches]
+    s += user(f"""# Code\n{code_str}\n# Change request\n{instruction}\n
+# Plan the changes that need to be made in the JSON format to complete the desired instruction. Change as few chunks as possible. State variable/function names as required, but don't make change descriptions overly specific. At most 2 change descriptions per chunk.""")
+    s += gen("plan", regex=build_regex_from_object(ChangeList), max_tokens=250)
+    print(instruction, s["plan"])
+    steps = json.loads(s["plan"])["changes"]
+    chunks_edited = list(set([step['chunk_index'] for step in steps]))
     
     if parallel:
-        forks = s.fork(len(steps))
+        forks = s.fork(len(chunks_edited))
         for i, f in enumerate(forks):
-            f += f"Rewritten chunk {steps[i]['number']}:\n```\n"
+            f += f"Rewritten chunk {chunks_edited[i]}. Do not truncate chunk code for brevity:\n```\n"
             f += gen(f"chunk", max_tokens=256, stop="```")
-        for i in range(len(steps)):
+        for i in range(len(chunks_edited)):
             new_code = forks[i]["chunk"].replace("```", "")
-            chunked_code[step['number'] - 1] = new_code
+            chunked_code[chunks_edited[i] - 1] = new_code
         return "\n".join(chunked_code)
+    
 
-    for step in steps:
-        s += user(f"Rewritten chunk {step['number']}:\n```\n")
-        s += gen(f"chunk_{step['number']}", stop="```")
-        new_code = s[f"chunk_{step['number']}"].replace("```", "")
-        chunked_code[step['number'] - 1] = new_code
+    for chunk_index in chunks_edited:
+        s += user(f"Edited chunk {chunk_index}:\n```\n")
+        s += gen(f"chunk_{chunk_index}", stop="```", max_tokens=256)
+        new_code = s[f"chunk_{chunk_index}"].replace("```", "")
+        print("Generated new code:\n", new_code, "\nfor chunk:\n", chunk_index)
+        chunked_code[chunk_index - 1] = new_code    
     return "\n".join(chunked_code)
 
 
